@@ -41,13 +41,6 @@ class DatasetForSAITS(BaseDataset):
     file_type : str, default = "h5py"
         The type of the given file if train_set and val_set are path strings.
 
-    rate : float, in (0,1),
-        Artificially missing rate, rate of the observed values which will be artificially masked as missing.
-        Note that, `rate` = (number of artificially missing values) / np.sum(~np.isnan(self.data)),
-        not (number of artificially missing values) / np.product(self.data.shape),
-        considering that the given data may already contain missing values,
-        the latter way may be confusing because if the original missing rate >= `rate`,
-        the function will do nothing, i.e. it won't play the role it has to be.
     """
 
     def __init__(
@@ -55,10 +48,16 @@ class DatasetForSAITS(BaseDataset):
         data: Union[dict, str],
         return_labels: bool = True,
         file_type: str = "h5py",
-        rate: float = 0.2,
+        masking_function = mcar,
+        masking_kwargs = dict(rate=0.2)
     ):
         super().__init__(data, return_labels, file_type)
-        self.rate = rate
+        self.masking_function = masking_function
+        self.masking_kwargs = masking_kwargs
+
+    def _mask_array(self, X):
+        """ returns X_intact, X, missing_mask, indicating_mask"""
+        return self.masking_function(X, **self.masking_kwargs)
 
     def _fetch_data_from_array(self, idx: int) -> Iterable:
         """Fetch data according to index.
@@ -89,7 +88,7 @@ class DatasetForSAITS(BaseDataset):
                 The mask indicates artificially missing values in X.
         """
         X = self.X[idx].to(torch.float32)
-        X_intact, X, missing_mask, indicating_mask = mcar(X, p=self.rate)
+        X_intact, X, missing_mask, indicating_mask = self._mask_array(X)
 
         sample = [
             torch.tensor(idx),
@@ -123,7 +122,7 @@ class DatasetForSAITS(BaseDataset):
             self.file_handle = self._open_file_handle()
 
         X = torch.from_numpy(self.file_handle["X"][idx]).to(torch.float32)
-        X_intact, X, missing_mask, indicating_mask = mcar(X, p=self.rate)
+        X_intact, X, missing_mask, indicating_mask = self._mask_array(X)
 
         sample = [
             torch.tensor(idx),

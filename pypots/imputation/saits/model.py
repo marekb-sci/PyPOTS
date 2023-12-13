@@ -19,6 +19,7 @@ import h5py
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from pygrinder import mcar
 
 from .data import DatasetForSAITS
 from .modules import _SAITS
@@ -151,6 +152,8 @@ class SAITS(BaseNNImputer):
         device: Optional[Union[str, torch.device, list]] = None,
         saving_path: Optional[str] = None,
         model_saving_strategy: Optional[str] = "best",
+        data_masking_function = mcar,
+        data_masking_kwargs = dict(rate=0.2)
     ):
         super().__init__(
             batch_size,
@@ -203,6 +206,11 @@ class SAITS(BaseNNImputer):
         self.optimizer = optimizer
         self.optimizer.init_optimizer(self.model.parameters())
 
+        # set up data masking
+        self.data_masking_function = data_masking_function
+        self.data_masking_kwargs = data_masking_kwargs
+        
+
     def _assemble_input_for_training(self, data: list) -> dict:
         (
             indices,
@@ -241,7 +249,9 @@ class SAITS(BaseNNImputer):
     ) -> None:
         # Step 1: wrap the input data with classes Dataset and DataLoader
         training_set = DatasetForSAITS(
-            train_set, return_labels=False, file_type=file_type
+            train_set, return_labels=False, file_type=file_type,
+            masking_function = self.data_masking_function,
+            masking_kwargs=self.data_masking_kwargs
         )
         training_loader = DataLoader(
             training_set,
