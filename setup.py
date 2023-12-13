@@ -7,13 +7,13 @@ with open("./README.md", encoding="utf-8") as f:
     README = f.read()
 
 setup(
-    name="pypots",
+    name="mypypots",
     version=__version__,
-    description="A Python Toolbox for Data Mining on Partially-Observed Time Series",
+    description="A Python Toolbox for Data Mining on Partially-Observed Time Series. Modified by MB",
     long_description=README,
     long_description_content_type="text/markdown",
     license="BSD-3-Clause",
-    author="Wenjie Du",
+    author="Wenjie Du, MB",
     author_email="wenjay.du@gmail.com",
     url="https://pypots.com/",
     project_urls={
